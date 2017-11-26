@@ -1,12 +1,17 @@
 package com.github.keyboard3.filedownloadmanage;
 
+import android.app.AlertDialog;
 import android.app.DownloadManager;
 import android.app.IntentService;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Environment;
+import android.os.Handler;
 import android.support.annotation.Nullable;
+import android.support.v4.content.CursorLoader;
 import android.text.TextUtils;
+import android.widget.Toast;
 
 import java.io.File;
 
@@ -34,9 +39,16 @@ public class DownloadService extends IntentService {
     private String appName;
     private String apkName;
     private boolean install;
+    private Handler handler;
 
     public DownloadService() {
         super("DownloadService");
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        handler = new Handler();
     }
 
     @Override
@@ -55,9 +67,6 @@ public class DownloadService extends IntentService {
      * 下载最新APK
      */
     private void downloadApk(String url, String versionName, String appName) {
-        if (TextUtils.isEmpty(apkName)) {
-            apkName = APPUtil.getDefaultInstallApkName(getApplicationContext());
-        }
         if (TextUtils.isEmpty(apkDir)) {
             apkDir = APPUtil.getDefaultInstallApkDir(getApplicationContext());
         }
@@ -67,14 +76,34 @@ public class DownloadService extends IntentService {
         if (TextUtils.isEmpty(versionName)) {
             versionName = "1.0";
         }
+        if (TextUtils.isEmpty(apkName)) {
+            apkName = APPUtil.getDefaultInstallApkName(getApplicationContext());
+        }
+        apkName += "_" + versionName;
         String apkUrl = APPUtil.getDefaultInstallApkDir(getApplicationContext()) + "/" + apkName + ".apk";
         File file = new File(apkUrl);
         if (file.exists()) {
-            LogUtil.i(TAG, "文件已存在删除：");
-            file.delete();
+            Intent intent = new Intent(getApplicationContext(), FileDownActivity.class);
+            intent.putExtra(FileDownActivity.BUNDLE_KEY_ACTION, "dialog");
+            intent.putExtra(FileDownActivity.BUNDLE_KEY_MSG, "检测到" + apkName + "已经存在是否直接打开！");
+            intent.putExtra(FileDownActivity.BUNDLE_KEY_INFO, new DownloadInfo(
+                    url
+                    , versionName
+                    , appName
+                    , apkName
+                    , apkUrl
+                    , install
+            ));
+            startActivity(intent);
+            LogUtil.d(TAG, "检测到已经存在是否直接打开");
+            return;
         }
-        downloadManager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
 
+        download(getApplicationContext(), url, versionName, appName, apkName, apkUrl, install);
+    }
+
+    public static void download(Context context, String url, String versionName, String appName, String apkName, String apkUrl, boolean install) {
+        DownloadManager downloadManager = (DownloadManager) context.getSystemService(DOWNLOAD_SERVICE);
         DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
         /**设置用于下载时的网络状态*/
         request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI | DownloadManager.Request.NETWORK_MOBILE);
@@ -87,11 +116,21 @@ public class DownloadService extends IntentService {
          我们需要调用Request对象的setVisibleInDownloadsUi方法，传递参数true.*/
         request.setVisibleInDownloadsUi(true);
         /**设置文件保存路径*/
-        request.setDestinationInExternalFilesDir(getApplicationContext(), Environment.DIRECTORY_DOWNLOADS, apkName + ".apk");
+        request.setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, apkName + ".apk");
 
         LogUtil.d(TAG, "apkUrl" + apkUrl);
-        downloadId = downloadManager.enqueue(request);
-        DownLoadBroadcast.downloadId = downloadId;
-        PreferencesUtils.putBoolean(getApplicationContext(), downloadId + "", install);
+        long downloadId = downloadManager.enqueue(request);
+        saveRecord(context, appName, downloadId, install);
+    }
+
+    public static void saveRecord(Context context, String appName, long downloadId, boolean install) {
+        PreferencesUtils.putBoolean(context, downloadId + "", install);
+        /**将记录当前下载downloadId*/
+        PreferencesUtils.putLong(context, "downloadId", downloadId);
+    }
+
+    public static void clearRecord(Context context, long downloadId) {
+        /**将记录当前下载的appName和downloadId都清空*/
+        PreferencesUtils.putLong(context, "downloadId", 0);
     }
 }

@@ -36,6 +36,8 @@ public class MainActivity extends AppCompatActivity {
                                             .setAppName("测试下载demo")
                                             .setApkName("downloadDemo")
                                             .setVersionName("1.0")
+                                            //.setApkDir(**)
+                                            //.setInstall(true)
                                             .setDownloadUrl("http://download.fir.im/v2/app/install/59b63f33548b7a28a000008b?download_token=36abfb0627d8ecd0ad3146c5aecf6f78&source=update")
                                             .start();
                                 }

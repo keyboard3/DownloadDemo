@@ -1,6 +1,7 @@
 # DownloadDemo
 系统下载apk并自动安装
-
+![](img/notify.png)
+![](img/alert.png)
 1.intentService异步启动DownlaodManager下载
 2.可配置通知栏显示内容app名称和app版本号
 3.可配置是否下载成功自动安装
