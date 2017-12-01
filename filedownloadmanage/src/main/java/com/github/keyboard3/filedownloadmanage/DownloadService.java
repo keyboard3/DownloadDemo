@@ -1,6 +1,5 @@
 package com.github.keyboard3.filedownloadmanage;
 
-import android.app.AlertDialog;
 import android.app.DownloadManager;
 import android.app.IntentService;
 import android.content.Context;
@@ -9,9 +8,7 @@ import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
 import android.support.annotation.Nullable;
-import android.support.v4.content.CursorLoader;
 import android.text.TextUtils;
-import android.widget.Toast;
 
 import java.io.File;
 
@@ -28,10 +25,8 @@ public class DownloadService extends IntentService {
     public static final String BUNDLE_KEY_VERSION_NAME = "version_name";
     public static final String BUNDLE_KEY_APP_NAME = "app_name";
     public static final String BUNDLE_KEY_APK_NAME = "apk_name";
+    public static final String BUNDLE_KEY_APK_DIR = "apk_dir";
     public static final String BUNDLE_KEY_INSTALL = "install";
-
-    private DownloadManager downloadManager;
-
     private long downloadId;
     private String downloadUrl;
     private String apkDir;
@@ -55,6 +50,7 @@ public class DownloadService extends IntentService {
     protected void onHandleIntent(@Nullable Intent intent) {
         downloadUrl = intent.getStringExtra(BUNDLE_KEY_DOWNLOAD_URL);
         versionName = intent.getStringExtra(BUNDLE_KEY_VERSION_NAME);
+        apkDir = intent.getStringExtra(BUNDLE_KEY_APK_DIR);
         appName = intent.getStringExtra(BUNDLE_KEY_APP_NAME);
         apkName = intent.getStringExtra(BUNDLE_KEY_APK_NAME);
         install = intent.getBooleanExtra(BUNDLE_KEY_INSTALL, true);
@@ -80,10 +76,11 @@ public class DownloadService extends IntentService {
             apkName = APPUtil.getDefaultInstallApkName(getApplicationContext());
         }
         apkName += "_" + versionName;
-        String apkUrl = APPUtil.getDefaultInstallApkDir(getApplicationContext()) + "/" + apkName + ".apk";
+        String apkUrl = apkDir + "/" + apkName + ".apk";
         File file = new File(apkUrl);
         if (file.exists()) {
             Intent intent = new Intent(getApplicationContext(), FileDownActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             intent.putExtra(FileDownActivity.BUNDLE_KEY_ACTION, "dialog");
             intent.putExtra(FileDownActivity.BUNDLE_KEY_MSG, "检测到" + apkName + "已经存在是否直接打开！");
             intent.putExtra(FileDownActivity.BUNDLE_KEY_INFO, new DownloadInfo(
@@ -103,6 +100,7 @@ public class DownloadService extends IntentService {
     }
 
     public static void download(Context context, String url, String versionName, String appName, String apkName, String apkUrl, boolean install) {
+        long downloadId = 0;
         DownloadManager downloadManager = (DownloadManager) context.getSystemService(DOWNLOAD_SERVICE);
         DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
         /**设置用于下载时的网络状态*/
@@ -119,7 +117,25 @@ public class DownloadService extends IntentService {
         request.setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, apkName + ".apk");
 
         LogUtil.d(TAG, "apkUrl" + apkUrl);
-        long downloadId = downloadManager.enqueue(request);
+        try {
+            downloadId = downloadManager.enqueue(request);
+        } catch (Exception e) {
+            LogUtil.d(TAG, "系统下载被禁用，采用OKHttp下载");
+            //打开Activity 通知下载
+            Intent intent = new Intent(context, FileDownActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.putExtra(FileDownActivity.BUNDLE_KEY_ACTION, "download");
+            intent.putExtra(FileDownActivity.BUNDLE_KEY_INFO, new DownloadInfo(
+                    url
+                    , versionName
+                    , appName
+                    , apkName
+                    , apkUrl
+                    , install
+            ));
+            context.startActivity(intent);
+            return;
+        }
         saveRecord(context, appName, downloadId, install);
     }
 

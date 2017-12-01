@@ -25,8 +25,9 @@ public class KDownloadManager {
         Intent intent = new Intent(activity, DownloadService.class);
         intent.putExtra(DownloadService.BUNDLE_KEY_DOWNLOAD_URL, params.downloadUrl);
         intent.putExtra(DownloadService.BUNDLE_KEY_APP_NAME, params.appName);
-        intent.putExtra(DownloadService.BUNDLE_KEY_VERSION_NAME, params.versionName);
         intent.putExtra(DownloadService.BUNDLE_KEY_APK_NAME, params.apkName);
+        intent.putExtra(DownloadService.BUNDLE_KEY_VERSION_NAME, params.versionName);
+        intent.putExtra(DownloadService.BUNDLE_KEY_APK_DIR, params.apkDir);
         intent.putExtra(DownloadService.BUNDLE_KEY_INSTALL, params.install);
         activity.startService(intent);
     }
@@ -38,7 +39,7 @@ public class KDownloadManager {
         public String versionName;
         public String appName;
         public String apkName;
-        public boolean install;
+        public boolean install = true;
     }
 
     public static class Builder {
