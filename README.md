@@ -1,8 +1,8 @@
 # DownloadDemo
 下载apk并自动安装
 ![](img/notify.png)
-![](img/alert.png)
 ![](img/okDownload.png)
+![](img/alert.png)
 ```
 1.intentService异步启动下载
 2.支持系统DownloadManager和OkHttp下载切换
