@@ -29,6 +29,7 @@ public class KDownloadManager {
         intent.putExtra(DownloadService.BUNDLE_KEY_VERSION_NAME, params.versionName);
         intent.putExtra(DownloadService.BUNDLE_KEY_APK_DIR, params.apkDir);
         intent.putExtra(DownloadService.BUNDLE_KEY_INSTALL, params.install);
+        intent.putExtra(DownloadService.BUNDLE_KEY_SYSTEM_DOWNLOAD, params.systemDownload);
         activity.startService(intent);
     }
 
@@ -40,6 +41,7 @@ public class KDownloadManager {
         public String appName;
         public String apkName;
         public boolean install = true;
+        public boolean systemDownload = true;
     }
 
     public static class Builder {
@@ -62,6 +64,11 @@ public class KDownloadManager {
 
         public Builder setInstall(boolean isInstall) {
             params.install = isInstall;
+            return this;
+        }
+
+        public Builder setSystemDownload(boolean systemDownload) {
+            params.systemDownload = systemDownload;
             return this;
         }
 

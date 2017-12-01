@@ -8,6 +8,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
+import com.github.keyboard3.filedownloadmanage.APPUtil;
 import com.github.keyboard3.filedownloadmanage.KDownloadManager;
 import com.yanzhenjie.permission.AndPermission;
 import com.yanzhenjie.permission.PermissionListener;
@@ -36,8 +37,9 @@ public class MainActivity extends AppCompatActivity {
                                             .setAppName("测试下载demo")
                                             .setApkName("downloadDemo")
                                             .setVersionName("1.0")
-                                            //.setApkDir(**)
-                                            //.setInstall(true)
+                                            .setApkDir(APPUtil.getDefaultInstallApkDir(MainActivity.this))
+                                            .setInstall(true)
+                                            .setSystemDownload(false)
                                             .setDownloadUrl("http://download.fir.im/v2/app/install/59b63f33548b7a28a000008b?download_token=36abfb0627d8ecd0ad3146c5aecf6f78&source=update")
                                             .start();
                                 }

@@ -27,16 +27,16 @@ public class FileDownActivity extends Activity {
     public static final String BUNDLE_KEY_ACTION = "BUNDLE_KEY_ACTION";
     public static final String BUNDLE_KEY_MSG = "BUNDLE_KEY_MSG";
     public static final String BUNDLE_KEY_INFO = "BUNDLE_KEY_INFO";
-    private DownloadInfo info;
-    private Call call;
-    private ProgressDialog prodialog;
+    private DownloadInfo mInfo;
+    private Call mCall;
+    private ProgressDialog mProDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_file_down);
         String action = getIntent().getStringExtra(BUNDLE_KEY_ACTION);
-        info = (DownloadInfo) getIntent().getSerializableExtra(BUNDLE_KEY_INFO);
+        mInfo = (DownloadInfo) getIntent().getSerializableExtra(BUNDLE_KEY_INFO);
         switch (action) {
             case "dialog":
                 String msg = getIntent().getStringExtra(BUNDLE_KEY_MSG);
@@ -46,7 +46,7 @@ public class FileDownActivity extends Activity {
                         .setPositiveButton("安装", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
-                                APPUtil.installApk(getApplicationContext(), info.apkUrl);
+                                APPUtil.installApk(getApplicationContext(), mInfo.apkUrl);
                                 dialog.dismiss();
                                 finish();
                             }
@@ -55,15 +55,10 @@ public class FileDownActivity extends Activity {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
                                 Toast.makeText(FileDownActivity.this, "开始下载", Toast.LENGTH_SHORT).show();
-                                File file = new File(info.apkUrl);
+                                File file = new File(mInfo.apkUrl);
                                 file.delete();
-                                DownloadService.download(getApplicationContext()
-                                        , info.url
-                                        , info.versionName
-                                        , info.appName
-                                        , info.apkName
-                                        , info.apkUrl
-                                        , info.install);
+                                DownloadService.dispatchDownload(getApplicationContext(),
+                                        mInfo);
                                 dialog.dismiss();
                                 finish();
                             }
@@ -82,32 +77,32 @@ public class FileDownActivity extends Activity {
          * 页面显示风格
          */
         //新建ProgressDialog对象
-        prodialog = new ProgressDialog(this);
+        mProDialog = new ProgressDialog(this);
         //设置显示风格
-        prodialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+        mProDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
         //设置标题
-        prodialog.setTitle(info.apkName);
+        mProDialog.setTitle(mInfo.apkName);
         /**
          * 设置关于ProgressBar属性
          */
         //设置最大进度
-        prodialog.setMax(100);
+        mProDialog.setMax(100);
         //设定初始化已经增长到的进度
-        prodialog.incrementProgressBy(0);
+        mProDialog.incrementProgressBy(0);
         //进度条是明显显示进度的
-        prodialog.setIndeterminate(false);
-        prodialog.show();
+        mProDialog.setIndeterminate(false);
+        mProDialog.show();
 
 
         LogUtil.d("start download");
-        String url = info.url;
+        String url = mInfo.url;
 
         OkHttpClient okHttpClient = new OkHttpClient();
         Request.Builder builder = new Request.Builder();
         builder.url(url);
         builder.get();
-        call = okHttpClient.newCall(builder.build());
-        call.enqueue(new Callback() {
+        mCall = okHttpClient.newCall(builder.build());
+        mCall.enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 Log.e("TAG", "=============onFailure===============");
@@ -138,7 +133,7 @@ public class FileDownActivity extends Activity {
                         Log.e("TAG", "percent:" + percent);
                         Log.e("TAG", "speed:" + speed);
                         Log.e("TAG", "============= end ===============");
-                        prodialog.setProgress((int) (100 * percent));
+                        mProDialog.setProgress((int) (100 * percent));
                     }
 
                     //if you don't need this method, don't override this methd. It isn't an abstract method, just an empty method.
@@ -147,16 +142,16 @@ public class FileDownActivity extends Activity {
                         super.onUIProgressFinish();
                         Log.e("TAG", "onUIProgressFinish:");
                         Toast.makeText(FileDownActivity.this, "下载完成", Toast.LENGTH_SHORT).show();
-                        prodialog.dismiss();
+                        mProDialog.dismiss();
                         finish();
-                        APPUtil.installApk(FileDownActivity.this, info.apkUrl);
+                        APPUtil.installApk(FileDownActivity.this, mInfo.apkUrl);
                     }
                 });
 
                 try {
                     BufferedSource source = responseBody.source();
 
-                    File outFile = new File(info.apkUrl);
+                    File outFile = new File(mInfo.apkUrl);
                     outFile.delete();
                     outFile.getParentFile().mkdirs();
                     outFile.createNewFile();
@@ -177,11 +172,11 @@ public class FileDownActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (call != null) {
-            call.cancel();
+        if (mCall != null) {
+            mCall.cancel();
         }
-        if (prodialog != null) {
-            prodialog.dismiss();
+        if (mProDialog != null) {
+            mProDialog.dismiss();
         }
     }
 }

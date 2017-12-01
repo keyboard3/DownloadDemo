@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Environment;
-import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
@@ -27,14 +26,14 @@ public class DownloadService extends IntentService {
     public static final String BUNDLE_KEY_APK_NAME = "apk_name";
     public static final String BUNDLE_KEY_APK_DIR = "apk_dir";
     public static final String BUNDLE_KEY_INSTALL = "install";
-    private long downloadId;
-    private String downloadUrl;
-    private String apkDir;
-    private String versionName;
-    private String appName;
-    private String apkName;
-    private boolean install;
-    private Handler handler;
+    public static final String BUNDLE_KEY_SYSTEM_DOWNLOAD = "system_download";
+    private String mDownloadUrl;
+    private String mApkDir;
+    private String mVersionName;
+    private String mAppName;
+    private String mApkName;
+    private boolean mInstall;
+    private boolean mSystemDownload;
 
     public DownloadService() {
         super("DownloadService");
@@ -43,28 +42,28 @@ public class DownloadService extends IntentService {
     @Override
     public void onCreate() {
         super.onCreate();
-        handler = new Handler();
     }
 
     @Override
     protected void onHandleIntent(@Nullable Intent intent) {
-        downloadUrl = intent.getStringExtra(BUNDLE_KEY_DOWNLOAD_URL);
-        versionName = intent.getStringExtra(BUNDLE_KEY_VERSION_NAME);
-        apkDir = intent.getStringExtra(BUNDLE_KEY_APK_DIR);
-        appName = intent.getStringExtra(BUNDLE_KEY_APP_NAME);
-        apkName = intent.getStringExtra(BUNDLE_KEY_APK_NAME);
-        install = intent.getBooleanExtra(BUNDLE_KEY_INSTALL, true);
+        mDownloadUrl = intent.getStringExtra(BUNDLE_KEY_DOWNLOAD_URL);
+        mVersionName = intent.getStringExtra(BUNDLE_KEY_VERSION_NAME);
+        mApkDir = intent.getStringExtra(BUNDLE_KEY_APK_DIR);
+        mAppName = intent.getStringExtra(BUNDLE_KEY_APP_NAME);
+        mApkName = intent.getStringExtra(BUNDLE_KEY_APK_NAME);
+        mInstall = intent.getBooleanExtra(BUNDLE_KEY_INSTALL, true);
+        mSystemDownload = intent.getBooleanExtra(BUNDLE_KEY_SYSTEM_DOWNLOAD, true);
 
-        LogUtil.i(TAG, "下载路径：" + downloadUrl);
-        downloadApk(downloadUrl, versionName, appName);
+        LogUtil.i(TAG, "下载路径：" + mDownloadUrl);
+        downloadApk(mDownloadUrl, mVersionName, mAppName);
     }
 
     /**
      * 下载最新APK
      */
     private void downloadApk(String url, String versionName, String appName) {
-        if (TextUtils.isEmpty(apkDir)) {
-            apkDir = APPUtil.getDefaultInstallApkDir(getApplicationContext());
+        if (TextUtils.isEmpty(mApkDir)) {
+            mApkDir = APPUtil.getDefaultInstallApkDir(getApplicationContext());
         }
         if (TextUtils.isEmpty(appName)) {
             appName = "测试应用";
@@ -72,71 +71,79 @@ public class DownloadService extends IntentService {
         if (TextUtils.isEmpty(versionName)) {
             versionName = "1.0";
         }
-        if (TextUtils.isEmpty(apkName)) {
-            apkName = APPUtil.getDefaultInstallApkName(getApplicationContext());
+        if (TextUtils.isEmpty(mApkName)) {
+            mApkName = APPUtil.getDefaultInstallApkName(getApplicationContext());
         }
-        apkName += "_" + versionName;
-        String apkUrl = apkDir + "/" + apkName + ".apk";
+        mApkName += "_" + versionName;
+        String apkUrl = mApkDir + "/" + mApkName + ".apk";
+        DownloadInfo info = new DownloadInfo(
+                url
+                , versionName
+                , appName
+                , mApkName
+                , apkUrl
+                , mInstall
+                , mSystemDownload
+        );
         File file = new File(apkUrl);
         if (file.exists()) {
             Intent intent = new Intent(getApplicationContext(), FileDownActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             intent.putExtra(FileDownActivity.BUNDLE_KEY_ACTION, "dialog");
-            intent.putExtra(FileDownActivity.BUNDLE_KEY_MSG, "检测到" + apkName + "已经存在是否直接打开！");
-            intent.putExtra(FileDownActivity.BUNDLE_KEY_INFO, new DownloadInfo(
-                    url
-                    , versionName
-                    , appName
-                    , apkName
-                    , apkUrl
-                    , install
-            ));
+            intent.putExtra(FileDownActivity.BUNDLE_KEY_MSG, "检测到" + mApkName + "已经存在是否直接打开！");
+            intent.putExtra(FileDownActivity.BUNDLE_KEY_INFO, info);
             startActivity(intent);
             LogUtil.d(TAG, "检测到已经存在是否直接打开");
             return;
         }
-
-        download(getApplicationContext(), url, versionName, appName, apkName, apkUrl, install);
+        dispatchDownload(getApplicationContext(), info);
     }
 
-    public static void download(Context context, String url, String versionName, String appName, String apkName, String apkUrl, boolean install) {
+    /**
+     * 分发下载
+     *
+     * @param context
+     * @param info
+     */
+    public static void dispatchDownload(Context context, DownloadInfo info) {
         long downloadId = 0;
         DownloadManager downloadManager = (DownloadManager) context.getSystemService(DOWNLOAD_SERVICE);
-        DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+        DownloadManager.Request request = new DownloadManager.Request(Uri.parse(info.url));
         /**设置用于下载时的网络状态*/
         request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI | DownloadManager.Request.NETWORK_MOBILE);
         request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-        request.setTitle(appName);
-        request.setDescription(versionName);
+        request.setTitle(info.appName);
+        request.setDescription(info.versionName);
         /**设置漫游状态下是否可以下载*/
         request.setAllowedOverRoaming(false);
         /**如果我们希望下载的文件可以被系统的Downloads应用扫描到并管理，
          我们需要调用Request对象的setVisibleInDownloadsUi方法，传递参数true.*/
         request.setVisibleInDownloadsUi(true);
         /**设置文件保存路径*/
-        request.setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, apkName + ".apk");
+        request.setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, info.apkName + ".apk");
 
-        LogUtil.d(TAG, "apkUrl" + apkUrl);
-        try {
-            downloadId = downloadManager.enqueue(request);
-        } catch (Exception e) {
-            LogUtil.d(TAG, "系统下载被禁用，采用OKHttp下载");
-            //打开Activity 通知下载
-            Intent intent = new Intent(context, FileDownActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            intent.putExtra(FileDownActivity.BUNDLE_KEY_ACTION, "download");
-            intent.putExtra(FileDownActivity.BUNDLE_KEY_INFO, new DownloadInfo(
-                    url
-                    , versionName
-                    , appName
-                    , apkName
-                    , apkUrl
-                    , install
-            ));
-            context.startActivity(intent);
+        LogUtil.d(TAG, "apkUrl" + info.apkUrl);
+        if (info.system) {
+            try {
+                downloadId = downloadManager.enqueue(request);
+            } catch (Exception e) {
+                LogUtil.d(TAG, "系统下载被禁用，采用OKHttp下载");
+                okDownload(context, info);
+                return;
+            }
+        } else {
+            okDownload(context, info);
             return;
         }
-        saveRecord(context, appName, downloadId, install);
+        saveRecord(context, info.appName, downloadId, info.install);
+    }
+
+    private static void okDownload(Context context, DownloadInfo info) {
+        Intent intent = new Intent(context, FileDownActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.putExtra(FileDownActivity.BUNDLE_KEY_ACTION, "download");
+        intent.putExtra(FileDownActivity.BUNDLE_KEY_INFO, info);
+        context.startActivity(intent);
     }
 
     public static void saveRecord(Context context, String appName, long downloadId, boolean install) {

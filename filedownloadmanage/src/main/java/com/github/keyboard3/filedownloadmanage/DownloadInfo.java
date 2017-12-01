@@ -8,13 +8,14 @@ import java.io.Serializable;
  */
 
 public class DownloadInfo implements Serializable {
-    public DownloadInfo(String url, String versionName, String appName, String apkName, String apkUrl, boolean install) {
+    public DownloadInfo(String url, String versionName, String appName, String apkName, String apkUrl, boolean install, boolean system) {
         this.url = url;
         this.versionName = versionName;
         this.appName = appName;
         this.apkName = apkName;
         this.apkUrl = apkUrl;
         this.install = install;
+        this.system = system;
     }
 
     public String url;
@@ -23,4 +24,5 @@ public class DownloadInfo implements Serializable {
     public String apkName;
     public String apkUrl;
     public boolean install;
+    public boolean system;
 }
