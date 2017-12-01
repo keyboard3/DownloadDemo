@@ -1,4 +1,4 @@
-# DownloadDemo
+# KDownloadManager
 下载apk并自动安装
 ```
 1.intentService异步启动下载
