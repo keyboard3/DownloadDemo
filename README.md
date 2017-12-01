@@ -1,8 +1,5 @@
 # DownloadDemo
 下载apk并自动安装
-![](img/notify.png)
-![](img/okDownload.png)
-![](img/alert.png)
 ```
 1.intentService异步启动下载
 2.支持系统DownloadManager和OkHttp下载切换
@@ -22,3 +19,6 @@ new KDownloadManager.Builder(getApplicationContext())
         .setDownloadUrl("http://download.fir.im/v2/app/install/59b63f33548b7a28a000008b?download_token=36abfb0627d8ecd0ad3146c5aecf6f78&source=update")
         .start();
 ```
+![](img/notify.png)
+![](img/okDownload.png)
+![](img/alert.png)
