@@ -8,8 +8,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
-import com.github.keyboard3.download.APPUtil;
-import com.github.keyboard3.download.KDownloadManager;
+import com.keyboard3.APPUtil;
+import com.keyboard3.KDownloader;
 import com.yanzhenjie.permission.AndPermission;
 import com.yanzhenjie.permission.PermissionListener;
 
@@ -33,7 +33,7 @@ public class MainActivity extends AppCompatActivity {
                             @Override
                             public void onSucceed(int requestCode, @NonNull List<String> grantPermissions) {
                                 if (requestCode == 100) {
-                                    new KDownloadManager.Builder(getApplicationContext())
+                                    new KDownloader.Builder(getApplicationContext())
                                             .setAppName("测试下载demo")
                                             .setApkName("downloadDemo")
                                             .setVersionName("1.0")
