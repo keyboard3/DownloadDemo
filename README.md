@@ -26,9 +26,9 @@ new KDownloadManager.Builder(getApplicationContext())
 ```
 
 ## Screenshot
-![](./screenshot/ss1.png)<br>
-![](./screenshot/ss2.png)<br>
-![](./screenshot/ss3.png)<br>
+<img src="./screenshot/ss1.png" width="350">
+<img src="./screenshot/ss2.png" width="350">
+<img src="./screenshot/ss2.png" width="350">
 
 ## Improve
 * 不支持下载暂停
