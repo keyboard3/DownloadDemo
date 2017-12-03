@@ -5,6 +5,8 @@ Android 升级下载安装库
 * 下载 [demo.apk](./demo.apk) <br/>
 
 ## Features
+* 支持版本升级提示框配置
+* 支持自动权限检查
 * intentService 异步启动下载
 * 支持系统 DownloadManager 和 okhttp 下载切换
 * 兼容系统 DownloadManager 被禁用时自动切换到 okhttp 下载
@@ -14,23 +16,40 @@ Android 升级下载安装库
 
 ## Gradle
 ```
-compile 'com.keyboard3:kdownloader:1.0'
+compile 'com.keyboard3:kdownloader:1.1'
 ```
 
 ## Usage
+纯下载自动安装
 ```
-new KDownloader.Builder(getApplicationContext())
+new KDownloader.Builder(MainActivity.this)
         .setAppName("测试下载demo")
-        .setApkName("downloadDemo")
+        .setApkName(APPUtil.getDefaultInstallApkName(getApplicationContext()))
         .setVersionName("1.0")
-        .setApkDir(APPUtil.getDefaultInstallApkDir(MainActivity.this))
-        .setInstall(true)
-        .setSystemDownload(false)
+        //.setApkDir(APPUtil.getDefaultInstallApkDir(MainActivity.this))
+        //.setInstall(true)
+        //.setSystemDownload(false)
         .setDownloadUrl("http://download.fir.im/v2/app/install/59b63f33548b7a28a000008b?download_token=36abfb0627d8ecd0ad3146c5aecf6f78&source=update")
         .start();
 ```
-
+带权限检查的升级提示框
+```
+new KDownloader.Builder(MainActivity.this)
+        //.setDialogTitle("提示")
+        //.setDialogMessage("新版本上线")
+        //.setDialogForceShow(false)
+        .setAppName("测试下载demo")
+        .setApkName(APPUtil.getDefaultInstallApkName(getApplicationContext()))
+        .setVersionName("1.0")
+        //.setApkDir(APPUtil.getDefaultInstallApkDir(MainActivity.this))
+        //.setInstall(true)
+        //.setSystemDownload(false)
+        .setDownloadUrl("http://download.fir.im/v2/app/install/59b63f33548b7a28a000008b?download_token=36abfb0627d8ecd0ad3146c5aecf6f78&source=update")
+        .startAndDialog();
+```
 ## Screenshot
+<img src="./screenshot/update.png" width="400">
+<img src="./screenshot/version.png" width="400">
 <img src="./screenshot/ss1.png" width="400">
 <img src="./screenshot/ss2.png" width="400">
 <img src="./screenshot/ss3.png" width="400">
