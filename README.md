@@ -49,11 +49,7 @@ new KDownloader.Builder(MainActivity.this)
         .startAndDialog();
 ```
 ## Screenshot
-<img src="./screenshot/permission.png" width="400">
-<img src="./screenshot/update.png" width="400">
-<img src="./screenshot/ss1.png" width="400">
-<img src="./screenshot/ss2.png" width="400">
-<img src="./screenshot/ss3.png" width="400">
+<img src="./screenshot/download.gif" width="400">
 
 ## Improve
 * 不支持下载暂停
