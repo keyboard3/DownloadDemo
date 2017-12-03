@@ -1,4 +1,4 @@
-# KDownloadManager
+# KDownloader
 Android 升级下载安装库
 
 ## Download
@@ -12,9 +12,14 @@ Android 升级下载安装库
 * 可配置是否下载成功自动安装
 * 支持7.0版本以上自动安装
 
+# Gradle Dependency
+```
+compile 'com.keyboard3:kdownloader:1.0'
+```
+
 ## Usage
 ```
-new KDownloadManager.Builder(getApplicationContext())
+new KDownloader.Builder(getApplicationContext())
         .setAppName("测试下载demo")
         .setApkName("downloadDemo")
         .setVersionName("1.0")
