@@ -1,6 +1,9 @@
 # KDownloadManager
 Android 升级下载安装库
 
+## Download
+* 下载[demo.apk](./demo.apk) <br/>
+
 ## Features
 * intentService 异步启动下载
 * 支持系统 DownloadManager 和 OkHttp 下载切换
@@ -27,9 +30,6 @@ new KDownloadManager.Builder(getApplicationContext())
 ![](./screenshot/ss2.png)<br>
 ![](./screenshot/ss3.png)<br>
 
-## Download
-* 下载[demo.apk](./demo.apk) <br/>
-
 ## Improve
 * 不支持下载暂停
 * 不支持多线程下载
@@ -37,6 +37,11 @@ new KDownloadManager.Builder(getApplicationContext())
 
 ## Thanks
 * okHttp 下载部分来自 [区长 CoreProgress](https://github.com/lizhangqu/CoreProgress)
+
+## Author
+
+简书 [keyboard3](http://www.jianshu.com/users/62329de8c8a6/latest_articles)<br>
+邮箱 keyboard3@icloud.com
 
 ## License
 <pre>
