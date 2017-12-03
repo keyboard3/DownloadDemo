@@ -12,7 +12,7 @@ Android 升级下载安装库
 * 可配置是否下载成功自动安装
 * 支持7.0版本以上自动安装
 
-# Gradle Dependency
+## Gradle
 ```
 compile 'com.keyboard3:kdownloader:1.0'
 ```
