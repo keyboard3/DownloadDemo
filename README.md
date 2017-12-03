@@ -35,7 +35,7 @@ new KDownloader.Builder(getApplicationContext())
 ```
 带权限检查的升级提示框
 ```
-new KDownloader.Builder(MainActivity.this)
+new KDownloader.Builder(getApplicationContext())
         //.setDialogTitle("提示")
         //.setDialogMessage("新版本上线")
         //.setDialogForceShow(false)
