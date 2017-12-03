@@ -7,21 +7,26 @@ import java.io.Serializable;
  */
 
 public class DownloadInfo implements Serializable {
-    public DownloadInfo(String url, String versionName, String appName, String apkName, String apkUrl, boolean install, boolean system) {
-        this.url = url;
-        this.versionName = versionName;
-        this.appName = appName;
-        this.apkName = apkName;
-        this.apkUrl = apkUrl;
-        this.install = install;
-        this.system = system;
-    }
-
     public String url;
     public String versionName;
     public String appName;
     public String apkName;
+    public String apkDir;
     public String apkUrl;
     public boolean install;
-    public boolean system;
+    public boolean systemDownload;
+
+    @Override
+    public String toString() {
+        return "DownloadInfo{" +
+                "url='" + url + '\'' +
+                ", versionName='" + versionName + '\'' +
+                ", appName='" + appName + '\'' +
+                ", apkName='" + apkName + '\'' +
+                ", apkDir='" + apkDir + '\'' +
+                ", apkUrl='" + apkUrl + '\'' +
+                ", install=" + install +
+                ", systemDownload=" + systemDownload +
+                '}';
+    }
 }

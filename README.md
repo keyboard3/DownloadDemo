@@ -5,6 +5,7 @@ Android 升级下载安装库
 * 下载 [demo.apk](./demo.apk) <br/>
 
 ## Features
+* 支持任何context上下文
 * 支持版本升级提示框配置
 * 支持自动权限检查
 * intentService 异步启动下载
@@ -16,13 +17,13 @@ Android 升级下载安装库
 
 ## Gradle
 ```
-compile 'com.keyboard3:kdownloader:1.1'
+compile 'com.keyboard3:kdownloader:1.1.1'
 ```
 
 ## Usage
 纯下载自动安装
 ```
-new KDownloader.Builder(MainActivity.this)
+new KDownloader.Builder(getApplicationContext())
         .setAppName("测试下载demo")
         .setApkName(APPUtil.getDefaultInstallApkName(getApplicationContext()))
         .setVersionName("1.0")
@@ -43,7 +44,7 @@ new KDownloader.Builder(MainActivity.this)
         .setVersionName("1.0")
         //.setApkDir(APPUtil.getDefaultInstallApkDir(MainActivity.this))
         //.setInstall(true)
-        //.setSystemDownload(false)
+        .setSystemDownload(false)
         .setDownloadUrl("http://download.fir.im/v2/app/install/59b63f33548b7a28a000008b?download_token=36abfb0627d8ecd0ad3146c5aecf6f78&source=update")
         .startAndDialog();
 ```

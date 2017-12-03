@@ -10,6 +10,7 @@ import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import java.io.File;
+import java.io.Serializable;
 
 /**
  * 用DownloadManager来实现版本更新
@@ -18,21 +19,6 @@ import java.io.File;
  */
 public class DownloadService extends IntentService {
     private static final String TAG = DownloadService.class.getSimpleName();
-
-    public static final String BUNDLE_KEY_DOWNLOAD_URL = "download_url";
-    public static final String BUNDLE_KEY_VERSION_NAME = "version_name";
-    public static final String BUNDLE_KEY_APP_NAME = "app_name";
-    public static final String BUNDLE_KEY_APK_NAME = "apk_name";
-    public static final String BUNDLE_KEY_APK_DIR = "apk_dir";
-    public static final String BUNDLE_KEY_INSTALL = "install";
-    public static final String BUNDLE_KEY_SYSTEM_DOWNLOAD = "system_download";
-    private String mDownloadUrl;
-    private String mApkDir;
-    private String mVersionName;
-    private String mAppName;
-    private String mApkName;
-    private boolean mInstall;
-    private boolean mSystemDownload;
 
     public DownloadService() {
         super("DownloadService");
@@ -45,64 +31,51 @@ public class DownloadService extends IntentService {
 
     @Override
     protected void onHandleIntent(@Nullable Intent intent) {
-        mDownloadUrl = intent.getStringExtra(BUNDLE_KEY_DOWNLOAD_URL);
-        mVersionName = intent.getStringExtra(BUNDLE_KEY_VERSION_NAME);
-        mApkDir = intent.getStringExtra(BUNDLE_KEY_APK_DIR);
-        mAppName = intent.getStringExtra(BUNDLE_KEY_APP_NAME);
-        mApkName = intent.getStringExtra(BUNDLE_KEY_APK_NAME);
-        mInstall = intent.getBooleanExtra(BUNDLE_KEY_INSTALL, true);
-        mSystemDownload = intent.getBooleanExtra(BUNDLE_KEY_SYSTEM_DOWNLOAD, true);
-
-        LogUtil.i(TAG, "下载路径：" + mDownloadUrl);
-        downloadApk(mDownloadUrl, mVersionName, mAppName);
+        DownloadInfo info = (DownloadInfo) intent.getSerializableExtra(KDownloader.BUNDLE_KEY_DOWNLOAD);
+        if (info == null) {
+            LogUtil.i(TAG, "info null");
+            return;
+        }
+        LogUtil.i(TAG, "data:" + info.toString());
+        downloadApk(info);
     }
 
     /**
      * 下载最新APK
      */
-    private void downloadApk(String url, String versionName, String appName) {
-        if (TextUtils.isEmpty(mApkDir)) {
-            mApkDir = APPUtil.getDefaultInstallApkDir(getApplicationContext());
+    private void downloadApk(DownloadInfo downloadInfo) {
+        if (TextUtils.isEmpty(downloadInfo.apkDir)) {
+            downloadInfo.apkDir = APPUtil.getDefaultInstallApkDir(getApplicationContext());
         }
-        if (TextUtils.isEmpty(appName)) {
-            appName = "测试应用";
+        if (TextUtils.isEmpty(downloadInfo.appName)) {
+            downloadInfo.appName = "测试应用";
         }
-        if (TextUtils.isEmpty(versionName)) {
-            versionName = "1.0";
+        if (TextUtils.isEmpty(downloadInfo.versionName)) {
+            downloadInfo.versionName = "1.0";
         }
-        if (TextUtils.isEmpty(mApkName)) {
-            mApkName = APPUtil.getDefaultInstallApkName(getApplicationContext());
+        if (TextUtils.isEmpty(downloadInfo.apkName)) {
+            downloadInfo.apkName = APPUtil.getDefaultInstallApkName(getApplicationContext());
         }
-        mApkName += "_" + versionName;
-        String apkUrl = mApkDir + "/" + mApkName + ".apk";
-        DownloadInfo info = new DownloadInfo(
-                url
-                , versionName
-                , appName
-                , mApkName
-                , apkUrl
-                , mInstall
-                , mSystemDownload
-        );
-        File file = new File(apkUrl);
+        downloadInfo.apkName += "_" + downloadInfo.versionName;
+        downloadInfo.apkUrl = downloadInfo.apkDir + "/" + downloadInfo.apkName + ".apk";
+        File file = new File(downloadInfo.apkUrl);
         if (file.exists()) {
             Intent intent = new Intent(getApplicationContext(), FileDownloadActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            intent.putExtra(FileDownloadActivity.BUNDLE_KEY_ACTION, "dialog");
-            intent.putExtra(FileDownloadActivity.BUNDLE_KEY_MSG, "检测到" + mApkName + "已经存在是否直接打开！");
-            intent.putExtra(FileDownloadActivity.BUNDLE_KEY_INFO, info);
+            intent.putExtra(KDownloader.BUNDLE_KEY_ACTION, KDownloader.ACTION_EXIST);
+            intent.putExtra(KDownloader.BUNDLE_KEY_DOWNLOAD, downloadInfo);
             startActivity(intent);
             LogUtil.d(TAG, "检测到已经存在是否直接打开");
             return;
         }
-        dispatchDownload(getApplicationContext(), info);
+        dispatchDownload(getApplicationContext(), downloadInfo);
     }
 
     /**
      * 分发下载
      *
      * @param context 上下文
-     * @param info 下载参数
+     * @param info    下载参数
      */
     public static void dispatchDownload(Context context, DownloadInfo info) {
         long downloadId = 0;
@@ -122,7 +95,7 @@ public class DownloadService extends IntentService {
         request.setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, info.apkName + ".apk");
 
         LogUtil.d(TAG, "apkUrl" + info.apkUrl);
-        if (info.system) {
+        if (info.systemDownload) {
             try {
                 downloadId = downloadManager.enqueue(request);
             } catch (Exception e) {
@@ -140,8 +113,8 @@ public class DownloadService extends IntentService {
     private static void okDownload(Context context, DownloadInfo info) {
         Intent intent = new Intent(context, FileDownloadActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        intent.putExtra(FileDownloadActivity.BUNDLE_KEY_ACTION, "download");
-        intent.putExtra(FileDownloadActivity.BUNDLE_KEY_INFO, info);
+        intent.putExtra(KDownloader.BUNDLE_KEY_ACTION, KDownloader.ACTION_DOWNLOAD);
+        intent.putExtra(KDownloader.BUNDLE_KEY_DOWNLOAD, info);
         context.startActivity(intent);
     }
 

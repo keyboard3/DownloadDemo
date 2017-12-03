@@ -1,17 +1,25 @@
 package com.keyboard3;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
 
 import com.github.keyboard3.download.R;
+import com.yanzhenjie.permission.AndPermission;
+import com.yanzhenjie.permission.PermissionListener;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 import io.github.lizhangqu.coreprogress.ProgressHelper;
 import io.github.lizhangqu.coreprogress.ProgressUIListener;
@@ -26,52 +34,127 @@ import okio.BufferedSource;
 import okio.Okio;
 
 public class FileDownloadActivity extends Activity {
-    public static final String BUNDLE_KEY_ACTION = "BUNDLE_KEY_ACTION";
-    public static final String BUNDLE_KEY_MSG = "BUNDLE_KEY_MSG";
-    public static final String BUNDLE_KEY_INFO = "BUNDLE_KEY_INFO";
-    private DownloadInfo mInfo;
+    private static final String TAG = "FileDownloadActivity";
+    private DownloadInfo mDownloadInfo;
+    private DialogInfo mDialogInfo;
     private Call mCall;
     private ProgressDialog mProDialog;
+    private int REQUEST_CODE = 808;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_file_down);
-        String action = getIntent().getStringExtra(BUNDLE_KEY_ACTION);
-        mInfo = (DownloadInfo) getIntent().getSerializableExtra(BUNDLE_KEY_INFO);
+
+        String action = getIntent().getStringExtra(KDownloader.BUNDLE_KEY_ACTION);
+        mDownloadInfo = (DownloadInfo) getIntent().getSerializableExtra(KDownloader.BUNDLE_KEY_DOWNLOAD);
+        mDialogInfo = (DialogInfo) getIntent().getSerializableExtra(KDownloader.BUNDLE_KEY_DIALOG);
         switch (action) {
-            case "dialog":
-                String msg = getIntent().getStringExtra(BUNDLE_KEY_MSG);
-                AlertDialog show = new AlertDialog.Builder(this)
-                        .setTitle("提示")
-                        .setMessage(msg)
-                        .setPositiveButton("安装", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                APPUtil.installApk(getApplicationContext(), mInfo.apkUrl);
-                                dialog.dismiss();
-                                finish();
-                            }
-                        })
-                        .setNegativeButton("直接下载", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                Toast.makeText(FileDownloadActivity.this, "开始下载", Toast.LENGTH_SHORT).show();
-                                File file = new File(mInfo.apkUrl);
-                                file.delete();
-                                DownloadService.dispatchDownload(getApplicationContext(),
-                                        mInfo);
-                                dialog.dismiss();
-                                finish();
-                            }
-                        }).show();
-                show.setCanceledOnTouchOutside(false);
+            case KDownloader.ACTION_UPGRADE:
+                upgrade();
                 break;
-            case "download":
+            case KDownloader.ACTION_EXIST:
+                apkExist();
+                break;
+            case KDownloader.ACTION_DOWNLOAD:
                 okDownload();
             default:
                 break;
         }
+    }
+
+    private void upgrade() {
+        Dialog tempDialog = null;
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        /**升级提示框配置**/
+        if (TextUtils.isEmpty(mDialogInfo.title)) {
+            mDialogInfo.title = "升级提示" + mDownloadInfo.versionName;
+        }
+        builder.setTitle(mDialogInfo.title);
+        if (TextUtils.isEmpty(mDialogInfo.message)) {
+            mDialogInfo.message = "暂无更新内容";
+        }
+        if (TextUtils.isEmpty(mDialogInfo.positiveText)) {
+            mDialogInfo.positiveText = "升级";
+        }
+        builder.setMessage(mDialogInfo.message);
+        builder.setPositiveButton(mDialogInfo.positiveText, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                Intent intent = new Intent(FileDownloadActivity.this, DownloadService.class);
+                intent.putExtra(KDownloader.BUNDLE_KEY_DOWNLOAD, mDownloadInfo);
+                startService(intent);
+                dialog.dismiss();
+                finish();
+            }
+        });
+
+        if (mDialogInfo.forceShow) {
+            tempDialog = builder.create();
+            tempDialog.setCancelable(false);
+            tempDialog.setCanceledOnTouchOutside(false);
+        } else {
+            builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    finish();
+                    dialog.dismiss();
+                }
+            });
+            tempDialog = builder.create();
+        }
+        /**权限检查*/
+        final Dialog dialog = tempDialog;
+        AndPermission.with(builder.getContext())
+                .requestCode(REQUEST_CODE)
+                .permission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                .callback(new PermissionListener() {
+                    @Override
+                    public void onSucceed(int requestCode, @NonNull List<String> grantPermissions) {
+                        if (requestCode == REQUEST_CODE) {
+                            dialog.show();
+                        }
+                    }
+
+                    @Override
+                    public void onFailed(int requestCode, @NonNull List<String> deniedPermissions) {
+                        Toast.makeText(FileDownloadActivity.this, "授权失败", Toast.LENGTH_SHORT).show();
+                    }
+                }).start();
+    }
+
+    private void apkExist() {
+        if (mDownloadInfo == null) {
+            LogUtil.d(TAG, "mDownloadInfo null");
+            return;
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(this)
+                .setTitle("提示")
+                .setMessage("检测到" + mDownloadInfo.apkName + "已经存在是否直接打开！")
+                .setPositiveButton("安装", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        APPUtil.installApk(getApplicationContext(), mDownloadInfo.apkUrl);
+                        dialog.dismiss();
+                        finish();
+                    }
+                })
+                .setNegativeButton("直接下载", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        Toast.makeText(FileDownloadActivity.this, "开始下载", Toast.LENGTH_SHORT).show();
+                        File file = new File(mDownloadInfo.apkUrl);
+                        file.delete();
+                        DownloadService.dispatchDownload(getApplicationContext(),
+                                mDownloadInfo);
+                        dialog.dismiss();
+                        finish();
+                    }
+                });
+        AlertDialog alertDialog = builder.create();
+        alertDialog.setCanceledOnTouchOutside(false);
+        alertDialog.setCancelable(false);
+        builder.show();
     }
 
     private void okDownload() {
@@ -83,7 +166,7 @@ public class FileDownloadActivity extends Activity {
         //设置显示风格
         mProDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
         //设置标题
-        mProDialog.setTitle(mInfo.apkName);
+        mProDialog.setTitle(mDownloadInfo.apkName);
         /**
          * 设置关于ProgressBar属性
          */
@@ -97,7 +180,7 @@ public class FileDownloadActivity extends Activity {
 
 
         LogUtil.d("start download");
-        String url = mInfo.url;
+        String url = mDownloadInfo.url;
 
         OkHttpClient okHttpClient = new OkHttpClient();
         Request.Builder builder = new Request.Builder();
@@ -151,14 +234,14 @@ public class FileDownloadActivity extends Activity {
                         Toast.makeText(FileDownloadActivity.this, "下载完成", Toast.LENGTH_SHORT).show();
                         mProDialog.dismiss();
                         finish();
-                        APPUtil.installApk(FileDownloadActivity.this, mInfo.apkUrl);
+                        APPUtil.installApk(FileDownloadActivity.this, mDownloadInfo.apkUrl);
                     }
                 });
 
                 try {
                     BufferedSource source = responseBody.source();
 
-                    File outFile = new File(mInfo.apkUrl);
+                    File outFile = new File(mDownloadInfo.apkUrl);
                     outFile.delete();
                     outFile.getParentFile().mkdirs();
                     outFile.createNewFile();

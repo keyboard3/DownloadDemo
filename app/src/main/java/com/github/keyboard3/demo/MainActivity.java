@@ -28,7 +28,7 @@ public class MainActivity extends AppCompatActivity {
                         .setVersionName("1.0")
                         //.setApkDir(APPUtil.getDefaultInstallApkDir(MainActivity.this))
                         //.setInstall(true)
-                        //.setSystemDownload(false)
+                        .setSystemDownload(false)
                         .setDownloadUrl("http://download.fir.im/v2/app/install/59b63f33548b7a28a000008b?download_token=36abfb0627d8ecd0ad3146c5aecf6f78&source=update")
                         .startAndDialog();
             }

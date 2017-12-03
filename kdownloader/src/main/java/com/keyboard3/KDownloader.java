@@ -1,30 +1,24 @@
 package com.keyboard3;
 
-import android.Manifest;
-import android.app.Activity;
-import android.app.Dialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.StringRes;
 import android.support.v7.app.AlertDialog;
-import android.text.TextUtils;
-import android.view.ContextThemeWrapper;
-import android.widget.Toast;
-
-import com.yanzhenjie.permission.AndPermission;
-import com.yanzhenjie.permission.PermissionListener;
 
 import java.lang.ref.WeakReference;
-import java.util.List;
 
 /**
  * @author keyboard3 on 2017/11/24
  */
 
 public class KDownloader {
+    protected static final String BUNDLE_KEY_DOWNLOAD = "key_download";
+    protected static final String BUNDLE_KEY_DIALOG = "key_dialog";
+    protected static final String BUNDLE_KEY_ACTION = "key_action";
+    protected static final String ACTION_EXIST = "exist";
+    protected static final String ACTION_DOWNLOAD = "download";
+    protected static final String ACTION_UPGRADE = "upgrade";
     private BuilderParams params;
 
     protected KDownloader(BuilderParams params) {
@@ -35,21 +29,46 @@ public class KDownloader {
         if (params == null || params.wra.get() == null) {
             return;
         }
-        Context activity = params.wra.get();
-        Intent intent = new Intent(activity, DownloadService.class);
-        intent.putExtra(DownloadService.BUNDLE_KEY_DOWNLOAD_URL, params.downloadUrl);
-        intent.putExtra(DownloadService.BUNDLE_KEY_APP_NAME, params.appName);
-        intent.putExtra(DownloadService.BUNDLE_KEY_APK_NAME, params.apkName);
-        intent.putExtra(DownloadService.BUNDLE_KEY_VERSION_NAME, params.versionName);
-        intent.putExtra(DownloadService.BUNDLE_KEY_APK_DIR, params.apkDir);
-        intent.putExtra(DownloadService.BUNDLE_KEY_INSTALL, params.install);
-        intent.putExtra(DownloadService.BUNDLE_KEY_SYSTEM_DOWNLOAD, params.systemDownload);
-        activity.startService(intent);
+        Context context = params.wra.get();
+
+        DownloadInfo downloadInfo = new DownloadInfo();
+        downloadInfo.url = params.url;
+        downloadInfo.appName = params.appName;
+        downloadInfo.apkName = params.apkName;
+        downloadInfo.versionName = params.versionName;
+        downloadInfo.apkDir = params.apkDir;
+        downloadInfo.install = params.install;
+        downloadInfo.systemDownload = params.systemDownload;
+
+        if (params.downloadTarget) {
+            Intent intent = new Intent(context, DownloadService.class);
+            intent.putExtra(BUNDLE_KEY_DOWNLOAD, downloadInfo);
+            context.startService(intent);
+        } else {
+            DialogInfo dialogInfo = new DialogInfo();
+            dialogInfo.title = params.title;
+            dialogInfo.message = params.message;
+            dialogInfo.negativeText = params.negativeText;
+            dialogInfo.positiveText = params.positiveText;
+            dialogInfo.forceShow = params.forceShow;
+
+            Intent intent = new Intent(context, FileDownloadActivity.class);
+            intent.putExtra(BUNDLE_KEY_DOWNLOAD, downloadInfo);
+            intent.putExtra(BUNDLE_KEY_DIALOG, dialogInfo);
+            intent.putExtra(BUNDLE_KEY_ACTION, ACTION_UPGRADE);
+            context.startActivity(intent);
+        }
     }
 
     static class BuilderParams {
         public WeakReference<Context> wra;
-        public String downloadUrl;
+        public String title;
+        public String message;
+        public String positiveText;
+        public String negativeText;
+        public boolean forceShow;
+        public boolean downloadTarget = true;
+        public String url;
         public String apkDir;
         public String versionName;
         public String appName;
@@ -59,21 +78,18 @@ public class KDownloader {
     }
 
     public static class Builder {
-        private final BuilderParams params;
+        private BuilderParams params;
         private AlertDialog.Builder builder = null;
         private boolean forceShow = false;
         private final int REQUEST_CODE = 8080;
-        private CharSequence mPositveText;
+        private CharSequence mPositiveText;
         private CharSequence mNegativeText;
-        private int mPositveTextId = -1;
-        private int mNegativeTextId = -1;
         private CharSequence mTitle;
         private CharSequence mMessage;
 
-        public Builder(ContextThemeWrapper context) {
+        public Builder(Context context) {
             params = new BuilderParams();
             params.wra = new WeakReference<Context>(context);
-            builder = new AlertDialog.Builder(params.wra.get());
         }
 
         /**
@@ -89,18 +105,8 @@ public class KDownloader {
             return this;
         }
 
-        public Builder setPositiveButton(@StringRes int textId) {
-            mPositveTextId = textId;
-            return this;
-        }
-
         public Builder setPositiveButton(CharSequence text) {
-            this.mPositveText = text;
-            return this;
-        }
-
-        public Builder setNegativeButton(@StringRes int textId) {
-            this.mNegativeTextId = textId;
+            this.mPositiveText = text;
             return this;
         }
 
@@ -118,7 +124,7 @@ public class KDownloader {
          * 下载配置部分
          */
         public Builder setDownloadUrl(String url) {
-            params.downloadUrl = url;
+            params.url = url;
             return this;
         }
 
@@ -157,63 +163,8 @@ public class KDownloader {
         }
 
         public KDownloader startAndDialog() {
-            Dialog tempDialog = null;
-            final KDownloader kDownloadManager = create();
-            /**升级提示框配置**/
-            if (mPositveText == null || mNegativeTextId == -1) {
-                mPositveText = "升级";
-            } else if (mNegativeTextId != -1) {
-                mPositveText = params.wra.get().getResources().getText(mPositveTextId);
-            }
-            if (TextUtils.isEmpty(mTitle)) {
-                mTitle = "升级提示";
-            }
-            builder.setTitle(mTitle);
-            if (TextUtils.isEmpty(mMessage)) {
-                mMessage = "暂无更新内容";
-            }
-            builder.setMessage(mMessage);
-            builder.setPositiveButton(mPositveText, new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    kDownloadManager.go();
-                    dialog.dismiss();
-                }
-            });
-
-            if (forceShow) {
-                tempDialog = builder.create();
-                tempDialog.setCancelable(false);
-                tempDialog.setCanceledOnTouchOutside(false);
-            } else {
-                builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        dialog.dismiss();
-                    }
-                });
-                tempDialog = builder.create();
-            }
-            /**权限检查*/
-            final Dialog dialog = tempDialog;
-            AndPermission.with(builder.getContext())
-                    .requestCode(REQUEST_CODE)
-                    .permission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                    .callback(new PermissionListener() {
-                        @Override
-                        public void onSucceed(int requestCode, @NonNull List<String> grantPermissions) {
-                            if (requestCode == REQUEST_CODE) {
-                                dialog.show();
-                            }
-                        }
-
-                        @Override
-                        public void onFailed(int requestCode, @NonNull List<String> deniedPermissions) {
-                            Toast.makeText(builder.getContext(), "授权失败", Toast.LENGTH_SHORT).show();
-                        }
-                    }).start();
-
-            return kDownloadManager;
+            params.downloadTarget = false;
+            return start();
         }
 
         public KDownloader start() {
